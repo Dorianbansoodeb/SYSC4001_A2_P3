@@ -5,7 +5,7 @@
  *
  */
 
-#include<interrupts.hpp>
+#include "interrupts.hpp"
 
 std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string> trace_file, int time, std::vector<std::string> vectors, std::vector<int> delays, std::vector<external_file> external_files, PCB current, std::vector<PCB> wait_queue) {
 
@@ -147,7 +147,8 @@ int main(int argc, char** argv) {
     print_external_files(external_files);
 
     //Make initial PCB (notice how partition is not assigned yet)
-    PCB current(0, -1, "init", 1, -1);
+    memory[5].code = "init";
+    PCB current(0, -1, "init", 1, 6); //Partition 6 is for 'init' process
     //Update memory (partition is assigned here, you must implement this function)
     if(!allocate_memory(&current)) {
         std::cerr << "ERROR! Memory allocation failed!" << std::endl;

@@ -30,7 +30,7 @@ memory_partition_t memory[] = {
     memory_partition_t(3, 15, "empty"),
     memory_partition_t(4, 10, "empty"),
     memory_partition_t(5, 8, "empty"),
-    memory_partition_t(6, 2, "empty")
+    memory_partition_t(6, 2, "init")
 };
 
 struct PCB{
