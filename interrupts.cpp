@@ -14,6 +14,8 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
     std::string system_status = "";  //!< string to accumulate the system status output
     int current_time = time;
 
+    static unsigned int next_pid = 1; //PID counter
+
     //parse each line of the input trace file. 'for' loop to keep track of indices.
     for(size_t i = 0; i < trace_file.size(); i++) {
         auto trace = trace_file[i];
@@ -50,18 +52,50 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
 
             ///////////////////////////////////////////////////////////////////////////////////////////
             //Add your FORK output here
+            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + ", cloning the PCB\n";
+            current_time += duration_intr;
 
+            //clone the current PCB
+            PCB child = current;
+            child.PID = next_pid++;
+            child.PPID = current.PID;
+            child.size = current.size;
+            child.program_name = current.program_name;
+            //allocate memory check
+            if (!allocate_memory(&child)) {
+                execution += std::to_string(current_time) + ", 1, ERROR: no partition for child\n";
+                current_time += 1;
 
+                // No child to run — resume parent at IF_PARENT
+                // Find the IF_PARENT and set i there; do NOT build child_trace
+                for (size_t j = i; j < trace_file.size(); ++j) {
+                    auto [_a, _d, _pn] = parse_trace(trace_file[j]);
+                    if (_a == "IF_PARENT") {
+                        i = j;  // parent picks up from here
+                        break;
+                    }
+                }
 
+                // No context switch occurred, so no scheduler needed here.
+                execution += std::to_string(current_time) + ", 1, IRET\n";
+                current_time += 1;
+                continue;   // continue the main trace loop with the parent
+            }
+
+            //call the scheduler
+            execution += std::to_string(current_time) + ", 0, scheduler called\n";
+
+            execution += std::to_string(current_time) + ", 1, IRET\n";
+            current_time += 1;
             ///////////////////////////////////////////////////////////////////////////////////////////
 
             //The following loop helps you do 2 things:
-            // * Collect the trace of the chile (and only the child, skip parent)
+            // * Collect the trace of the child (and only the child, skip parent)
             // * Get the index of where the parent is supposed to start executing from
             std::vector<std::string> child_trace;
             bool skip = true;
             bool exec_flag = false;
-            int parent_index = 0;
+            size_t parent_index = 0;
 
             for(size_t j = i; j < trace_file.size(); j++) {
                 auto [_activity, _duration, _pn] = parse_trace(trace_file[j]);
@@ -91,8 +125,40 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
 
             ///////////////////////////////////////////////////////////////////////////////////////////
             //With the child's trace, run the child (HINT: think recursion)
+            system_status += "time: " + std::to_string(current_time)
+                           + "; current trace: FORK, " + std::to_string(duration_intr) + "\n";
 
+            // Build a simple wait list that contains only the parent (current)
+            std::vector<PCB> parent_wait_list;
+            parent_wait_list.push_back(current);
 
+            // Print the PCB table: child (running) first, then the waiting processes (the parent)
+            system_status += print_PCB(child, parent_wait_list);
+
+            if (child_trace.size() > 0)
+            {
+                std::tuple<std::string, std::string, int> child_result =
+                    simulate_trace(child_trace,
+                                   current_time,
+                                   vectors,
+                                   delays,
+                                   external_files,
+                                   child,
+                                   parent_wait_list);
+
+                // Unpack the 3 return values from simulate_trace:
+                //   0: execution text, 1: system status text, 2: time after child finishes
+                std::string child_exec_log = std::get<0>(child_result);
+                std::string child_sys_log  = std::get<1>(child_result);
+                int child_finish_time      = std::get<2>(child_result);
+
+                // Append the child's outputs to our main outputs
+                execution     += child_exec_log;
+                system_status += child_sys_log;
+
+                // Advance the time so the parent continues AFTER the child completes
+                current_time = child_finish_time;
+            }
 
             ///////////////////////////////////////////////////////////////////////////////////////////
 

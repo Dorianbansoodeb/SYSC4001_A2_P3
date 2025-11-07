@@ -1,5 +1,5 @@
 ---
 triple:          'arm64-apple-darwin'
-binary-path:     'output/interrupts'
+binary-path:     '/Users/dorian/LocalDocs/GitHub/SYSC4001_A2/output/interrupts'
 relocations:     []
 ...
