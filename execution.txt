@@ -13,10 +13,18 @@
 42, 150, load program1
 192, 0, scheduler called
 192, 1, IRET
-193, 1, switch to kernel mode
-194, 10, context saved
-204, 1, find vector 3 in memory position 0x0006
-205, 1, load address 0X042B into the PC
-206, 225, load program2
-431, 0, scheduler called
-431, 1, IRET
+193, 100, CPU Burst
+293, 1, switch to kernel mode
+294, 10, context saved
+304, 1, find vector 3 in memory position 0x0006
+305, 1, load address 0X042B into the PC
+306, 225, load program2
+531, 0, scheduler called
+531, 1, IRET
+532, 1, switch to kernel mode
+533, 10, context saved
+543, 1, find vector 4 in memory position 0x0008
+544, 1, load address 0X0292 into the PC
+545, 250, SYSCALL ISR: enqueue device request
+795, 0, scheduler called
+795, 1, IRET
