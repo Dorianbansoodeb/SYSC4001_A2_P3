@@ -180,11 +180,8 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             current_time = time;
             execution += intr;
 
-<<<<<<< HEAD
         
 
-=======
->>>>>>> 739a96ee17c54fa31a046308865a042d82886fcd
             ///////////////////////////////////////////////////////////////////////////////////////////
             //With the exec's trace, run the exec (HINT: think recursion)
 
@@ -232,13 +229,10 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
                     execution += std::to_string(current_time) + ", 1, ERROR: no partition for EXEC\n";
                     current_time += 1;
                 }
-<<<<<<< HEAD
                 system_status += "time: " + std::to_string(current_time)
                             + "; current trace: EXEC " + program_name + ", "
                             + std::to_string(duration_intr) + "\n";
                 system_status += print_PCB(current, wait_queue);
-=======
->>>>>>> 739a96ee17c54fa31a046308865a042d82886fcd
 
                 execution += std::to_string(current_time) + ", 0, scheduler called\n";
                 execution += std::to_string(current_time) + ", 1, IRET\n";
@@ -291,7 +285,7 @@ int main(int argc, char** argv) {
     memory[5].code = "init";
     PCB current(0, -1, "init", 1, 6); //Partition 6 is for 'init' process
     //Update memory (partition is assigned here, you must implement this function)
-    /*if(!allocate_memory(&current)) {
+    /*if(!allocate_memory(&current)) settin{
         std::cerr << "ERROR! Memory allocation failed!" << std::endl;
     }*/
 
