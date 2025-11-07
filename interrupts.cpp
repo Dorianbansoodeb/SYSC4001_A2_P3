@@ -1,11 +1,13 @@
 /**
  *
  * @file interrupts.cpp
- * @author Sasisekhar Govind
+ * @author Dorian Bansoodeb
+ * @author Justin Kim
  *
  */
 
 #include "interrupts.hpp"
+#include <tuple>
 
 std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string> trace_file, int time, std::vector<std::string> vectors, std::vector<int> delays, std::vector<external_file> external_files, PCB current, std::vector<PCB> wait_queue) {
 
@@ -30,20 +32,35 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             execution += intr;
             current_time = time;
 
-            execution += std::to_string(current_time) + ", " + std::to_string(delays[duration_intr]) + ", SYSCALL ISR (ADD STEPS HERE)\n";
+            execution += std::to_string(current_time) + ", "
+                    + std::to_string(delays[duration_intr])
+                    + ", SYSCALL ISR: enqueue device request\n";
             current_time += delays[duration_intr];
 
-            execution +=  std::to_string(current_time) + ", 1, IRET\n";
+            wait_queue.push_back(current);
+
+            execution += std::to_string(current_time) + ", 0, scheduler called\n";
+
+            execution += std::to_string(current_time) + ", 1, IRET\n";
             current_time += 1;
         } else if(activity == "END_IO") {
             auto [intr, time] = intr_boilerplate(current_time, duration_intr, 10, vectors);
             current_time = time;
             execution += intr;
 
-            execution += std::to_string(current_time) + ", " + std::to_string(delays[duration_intr]) + ", ENDIO ISR(ADD STEPS HERE)\n";
+            execution += std::to_string(current_time) + ", "
+                    + std::to_string(delays[duration_intr])
+                    + ", ENDIO ISR: complete device request\n";
             current_time += delays[duration_intr];
-
-            execution +=  std::to_string(current_time) + ", 1, IRET\n";
+            if (!wait_queue.empty()) {
+                current = wait_queue.front();
+                wait_queue.erase(wait_queue.begin());
+            } else {
+                execution += std::to_string(current_time) + ", 1, ENDIO: no process waiting\n";
+                current_time += 1;
+            }
+            execution += std::to_string(current_time) + ", 0, scheduler called\n";
+            execution += std::to_string(current_time) + ", 1, IRET\n";
             current_time += 1;
         } else if(activity == "FORK") {
             auto [intr, time] = intr_boilerplate(current_time, 2, 10, vectors);
@@ -169,8 +186,7 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             execution += intr;
 
             ///////////////////////////////////////////////////////////////////////////////////////////
-            //Add your EXEC output here
-
+            //With the exec's trace, run the exec (HINT: think recursion)
 
 
             ///////////////////////////////////////////////////////////////////////////////////////////
@@ -186,6 +202,58 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
 
             ///////////////////////////////////////////////////////////////////////////////////////////
             //With the exec's trace (i.e. trace of external program), run the exec (HINT: think recursion)
+
+            int new_size = -1;
+            for (size_t k = 0; k < external_files.size(); k++) {
+                if (external_files[k].program_name == program_name) {  // <-- use struct fields
+                    new_size = (int)external_files[k].size;
+                    break;
+                }
+            }
+
+            if (new_size < 0) {
+                execution += std::to_string(current_time) + ", 1, ERROR: missing external program " + program_name + "\n";
+                current_time += 1;
+                execution += std::to_string(current_time) + ", 1, IRET\n";
+                current_time += 1;
+            } else {
+                int loader_ms = 15 * new_size;
+                execution += std::to_string(current_time) + ", " + std::to_string(loader_ms)
+                        + ", load " + program_name + "\n";
+                current_time += loader_ms;
+
+             
+                current.program_name = program_name;
+                current.size = (unsigned)new_size;
+                if (current.partition_number > 0) {
+                    free_memory(&current);
+                }
+                if (!allocate_memory(&current)) {
+                    execution += std::to_string(current_time) + ", 1, ERROR: no partition for EXEC\n";
+                    current_time += 1;
+                }
+
+                execution += std::to_string(current_time) + ", 0, scheduler called\n";
+                execution += std::to_string(current_time) + ", 1, IRET\n";
+                current_time += 1;
+            }
+
+            
+
+            if (!exec_traces.empty()) {
+                std::tuple<std::string, std::string, int> exec_result =
+                    simulate_trace(exec_traces,
+                                current_time,
+                                vectors,
+                                delays,
+                                external_files,
+                                current,
+                                wait_queue);
+
+                execution     += std::get<0>(exec_result);
+                system_status += std::get<1>(exec_result);
+                current_time   = std::get<2>(exec_result);
+            }
 
 
 
