@@ -175,7 +175,7 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-        } else if(activity == "EXEC") {
+                } else if(activity == "EXEC") {
             auto [intr, time] = intr_boilerplate(current_time, 3, 10, vectors);
             current_time = time;
             execution += intr;
@@ -214,29 +214,41 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
                 execution += std::to_string(current_time) + ", 1, IRET\n";
                 current_time += 1;
             } else {
+                execution += std::to_string(current_time) + ", "
+                        + std::to_string(duration_intr)
+                        + ", Program is " + std::to_string(new_size) + " Mb large\n";
+                current_time += duration_intr;
+
                 int loader_ms = 15 * new_size;
                 execution += std::to_string(current_time) + ", " + std::to_string(loader_ms)
-                        + ", load " + program_name + "\n";
+                        + ", loading program into memory\n";
                 current_time += loader_ms;
 
-             
-                current.program_name = program_name;
-                current.size = (unsigned)new_size;
+                execution += std::to_string(current_time) + ", 3, marking partition as occupied\n";
+                current_time += 3;
+
+                execution += std::to_string(current_time) + ", 6, updating PCB\n";
+                current_time += 6;
+
                 if (current.partition_number > 0) {
                     free_memory(&current);
                 }
+                current.program_name = program_name;
+                current.size = (unsigned)new_size;
                 if (!allocate_memory(&current)) {
                     execution += std::to_string(current_time) + ", 1, ERROR: no partition for EXEC\n";
                     current_time += 1;
                 }
-                system_status += "time: " + std::to_string(current_time)
-                            + "; current trace: EXEC " + program_name + ", "
-                            + std::to_string(duration_intr) + "\n";
-                system_status += print_PCB(current, wait_queue);
+                
 
                 execution += std::to_string(current_time) + ", 0, scheduler called\n";
                 execution += std::to_string(current_time) + ", 1, IRET\n";
                 current_time += 1;
+
+                system_status += "time: " + std::to_string(current_time)
+                            + "; current trace: EXEC " + program_name + ", "
+                            + std::to_string(duration_intr) + "\n";
+                system_status += print_PCB(current, wait_queue);
             }
 
             
